@@ -1,0 +1,11 @@
+name: LoginStreaks
+main: com.osmc.loginstreaks.LoginStreaks
+version: 1.0
+description: loginstreaks gives money for every day you log in
+author: ItsVollx
+
+commands:
+  loginstreak:
+    description: Check your login streak status
+    usage: /<command> [help]
+    aliases: [ls, streak]

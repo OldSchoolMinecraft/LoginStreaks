@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="LoginStreaks:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/LoginStreaks_jar</output-path>
+    <root id="archive" name="LoginStreaks.jar">
+      <element id="module-output" name="LoginStreaks" />
+    </root>
+  </artifact>
+</component>

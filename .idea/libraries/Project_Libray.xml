@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Project Libray">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/Essentials.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/poseidon.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib/poseidon.jar!/" />
+    </SOURCES>
+  </library>
+</component>
