@@ -11,12 +11,14 @@ public class StreakManager {
     private final LoginStreaks plugin;
     private final LoginStreakConfig config;
     private final EssentialsHook essentials;
+    private final DatabaseManager database;
     private final Map<String, PlayerStreakData> streakCache;
 
-    public StreakManager(LoginStreaks plugin, LoginStreakConfig config, EssentialsHook essentials) {
+    public StreakManager(LoginStreaks plugin, LoginStreakConfig config, EssentialsHook essentials, DatabaseManager database) {
         this.plugin = plugin;
         this.config = config;
         this.essentials = essentials;
+        this.database = database;
         this.streakCache = new HashMap<String, PlayerStreakData>();
     }
 
@@ -57,9 +59,6 @@ public class StreakManager {
                 currentStreak = 1;
                 newStreak = true;
                 shouldGiveReward = true;
-                if (config.debug()) {
-                    plugin.getServer().getLogger().info("[LoginStreaks] " + player.getName() + " streak reset - too much time passed");
-                }
             }
         }
 
@@ -86,19 +85,12 @@ public class StreakManager {
             if (reward > 0 && essentials.isHooked()) {
                 essentials.giveMoney(player, reward);
                 player.sendMessage(config.msgReward(currentStreak, reward, player.getName()));
-
-                if (config.debug()) {
-                    plugin.getServer().getLogger().info("[LoginStreaks] " + playerName + " earned $" + reward + " for " + currentStreak + " day streak");
-                }
             } else {
                 player.sendMessage(config.msgContinue(currentStreak, player.getName()));
             }
         } else {
             // Player already logged in today or it's same-day login
             player.sendMessage(config.msgContinue(currentStreak, player.getName()));
-            if (config.debug()) {
-                plugin.getServer().getLogger().info("[LoginStreaks] " + playerName + " already logged in today - no reward");
-            }
         }
     }
 

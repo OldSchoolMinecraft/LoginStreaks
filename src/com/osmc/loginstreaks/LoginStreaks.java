@@ -9,9 +9,11 @@ public class LoginStreaks extends JavaPlugin {
 
     Logger logger = Bukkit.getLogger();
     private LoginStreakConfig config;
+    private DatabaseConfig databaseConfig;
     private EssentialsHook essentialsHook;
     private StreakManager streakManager;
     private LoginStreaksEvents events;
+    private DatabaseManager databaseManager;
 
     @Override
     public void onEnable() {
@@ -20,12 +22,29 @@ public class LoginStreaks extends JavaPlugin {
         // Initialize Essentials hook
         essentialsHook = new EssentialsHook(this);
 
-        // Load configuration
+        // Load main configuration
         config = new LoginStreakConfig(this);
-        config.load(); // This actually creates the config file
+        config.load();
+
+        // Load database configuration
+        databaseConfig = new DatabaseConfig(this);
+        databaseConfig.load();
+
+        // Initialize database manager if enabled
+        databaseManager = new DatabaseManager(this);
+        if (databaseConfig.isEnabled()) {
+            databaseManager.initialize(
+                databaseConfig.getHost(),
+                databaseConfig.getPort(),
+                databaseConfig.getName(),
+                databaseConfig.getUsername(),
+                databaseConfig.getPassword(),
+                databaseConfig.useSSL()
+            );
+        }
 
         // Initialize streak manager
-        streakManager = new StreakManager(this, config, essentialsHook);
+        streakManager = new StreakManager(this, config, essentialsHook, databaseManager);
 
         // Initialize event handler
         events = new LoginStreaksEvents(this, config, streakManager);
@@ -40,7 +59,11 @@ public class LoginStreaks extends JavaPlugin {
     @Override
     public void onDisable() {
         logger.info("LoginStreaks has been disabled!");
-        // Cleanup resources here if needed
+
+        // Disconnect from database if connected
+        if (databaseManager != null) {
+            databaseManager.disconnect();
+        }
     }
 
     // Public getters for other classes to access these components
@@ -58,5 +81,13 @@ public class LoginStreaks extends JavaPlugin {
 
     public LoginStreaksEvents getEvents() {
         return events;
+    }
+
+    public DatabaseManager getDatabaseManager() {
+        return databaseManager;
+    }
+
+    public DatabaseConfig getDatabaseConfig() {
+        return databaseConfig;
     }
 }

@@ -52,9 +52,21 @@ public final class LoginStreakConfig {
             sb.append("# Use UTC offset numbers: 0=UTC, 1=GMT+1, -5=EST, 8=Asia, etc.\n");
             sb.append("timezone=").append(props.getProperty("timezone", "0")).append("\n\n");
 
+            sb.append("# === DATABASE SETTINGS ===\n");
+            sb.append("# Set enabled=true to use MySQL database for streak tracking\n");
+            sb.append("database.enabled=").append(props.getProperty("database.enabled", "false")).append("\n");
+            sb.append("database.host=").append(props.getProperty("database.host", "localhost")).append("\n");
+            sb.append("database.port=").append(props.getProperty("database.port", "3306")).append("\n");
+            sb.append("database.name=").append(props.getProperty("database.name", "minecraft")).append("\n");
+            sb.append("database.username=").append(props.getProperty("database.username", "root")).append("\n");
+            sb.append("database.password=").append(props.getProperty("database.password", "password")).append("\n");
+            sb.append("database.useSSL=").append(props.getProperty("database.useSSL", "false")).append("\n\n");
+
             sb.append("# === REWARD SETTINGS ===\n");
             sb.append("# Base reward amount that increases each day\n");
-            sb.append("reward.increase=").append(props.getProperty("reward.increase", "15.0")).append("\n\n");
+            sb.append("reward.increase=").append(props.getProperty("reward.increase", "15.0")).append("\n");
+            sb.append("# Maximum reward cap (0 = no limit)\n");
+            sb.append("reward.max=").append(props.getProperty("reward.max", "500.0")).append("\n\n");
 
             sb.append("# === PLAYER MESSAGES ===\n");
             sb.append("message.reward=").append(props.getProperty("message.reward", "&a{player} reached &e{streak}d &astreak and earned &6${amount}&a!")).append("\n");
@@ -79,9 +91,21 @@ public final class LoginStreakConfig {
         // Use UTC offset numbers: 0=UTC, 1=GMT+1, -5=EST, 8=Asia, etc.
         props.setProperty("timezone", "0");
 
+        // === DATABASE SETTINGS ===
+        // Set enabled=true to use MySQL database for streak tracking
+        props.setProperty("database.enabled", "false");
+        props.setProperty("database.host", "localhost");
+        props.setProperty("database.port", "3306");
+        props.setProperty("database.name", "minecraft");
+        props.setProperty("database.username", "root");
+        props.setProperty("database.password", "password");
+        props.setProperty("database.useSSL", "false");
+
         // === REWARD SETTINGS ===
         // Base reward amount that increases each day
         props.setProperty("reward.increase", "15.0");
+        // Maximum reward cap (0 = no limit)
+        props.setProperty("reward.max", "500.0");
 
         // === PLAYER MESSAGES ===
         props.setProperty("message.reward", "&a{player} reached &e{streak}d &astreak and earned &6${amount}&a!");
@@ -107,7 +131,15 @@ public final class LoginStreakConfig {
 
     private void setDefaults(Properties p) {
         p.setProperty("timezone", "0");
+        p.setProperty("database.enabled", "false");
+        p.setProperty("database.host", "localhost");
+        p.setProperty("database.port", "3306");
+        p.setProperty("database.name", "minecraft");
+        p.setProperty("database.username", "root");
+        p.setProperty("database.password", "password");
+        p.setProperty("database.useSSL", "false");
         p.setProperty("reward.increase", "15.0");
+        p.setProperty("reward.max", "500.0");
         p.setProperty("message.reward", "&a{player} reached &e{streak}d &astreak and earned &6${amount}&a!");
         p.setProperty("message.continue", "&e{player}&a's login streak: &e{streak}d&a.");
         p.setProperty("message.reset", "&cYour streak has reset.");
@@ -141,10 +173,19 @@ public final class LoginStreakConfig {
         return color(s);
     }
 
-    /** Calculate reward based on streak day multiplied by increase amount */
+    /** Calculate reward based on streak day multiplied by increase amount, capped by max */
     public double rewardFor(int streak) {
         double increaseAmount = parseDouble(props.getProperty("reward.increase", "15.0"));
-        return streak * increaseAmount;
+        double maxReward = parseDouble(props.getProperty("reward.max", "500.0"));
+
+        double calculatedReward = streak * increaseAmount;
+
+        // Apply max cap if set (0 means no limit)
+        if (maxReward > 0 && calculatedReward > maxReward) {
+            return maxReward;
+        }
+
+        return calculatedReward;
     }
 
     /* ---------------- Helpers ---------------- */
@@ -190,6 +231,36 @@ public final class LoginStreakConfig {
         } catch (Exception e) {
             return java.util.TimeZone.getTimeZone("UTC");
         }
+    }
+
+    /* ---------------- Database Configuration ---------------- */
+
+    public boolean isDatabaseEnabled() {
+        return getBoolean("database.enabled", false);
+    }
+
+    public String getDatabaseHost() {
+        return props.getProperty("database.host", "localhost");
+    }
+
+    public int getDatabasePort() {
+        return getInt("database.port", 3306);
+    }
+
+    public String getDatabaseName() {
+        return props.getProperty("database.name", "minecraft");
+    }
+
+    public String getDatabaseUsername() {
+        return props.getProperty("database.username", "root");
+    }
+
+    public String getDatabasePassword() {
+        return props.getProperty("database.password", "password");
+    }
+
+    public boolean getDatabaseUseSSL() {
+        return getBoolean("database.useSSL", false);
     }
 
 
