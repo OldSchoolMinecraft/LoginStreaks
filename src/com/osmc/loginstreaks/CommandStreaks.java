@@ -36,7 +36,20 @@ public class CommandStreaks implements CommandExecutor {
             return true;
         }
 
-        // Handle main command - show streak info
+        // Handle top command
+        if (args.length > 0 && args[0].equalsIgnoreCase("top")) {
+            showTopStreaks(player);
+            return true;
+        }
+
+        // Handle other player lookup
+        if (args.length > 0) {
+            String targetPlayerName = args[0];
+            showOtherPlayerInfo(player, targetPlayerName);
+            return true;
+        }
+
+        // Handle main command - show own streak info
         showStreakInfo(player);
         return true;
     }
@@ -44,6 +57,8 @@ public class CommandStreaks implements CommandExecutor {
     private void showHelp(Player player) {
         player.sendMessage("§e=== LoginStreaks Help ===");
         player.sendMessage("§a/loginstreak §7- Show your current streak status");
+        player.sendMessage("§a/loginstreak <player> §7- Show another player's streak");
+        player.sendMessage("§a/loginstreak top §7- Show top login streaks");
         player.sendMessage("§a/loginstreak help §7- Show this help message");
         player.sendMessage("");
         player.sendMessage("§7Login daily to maintain your streak and earn rewards!");
@@ -51,6 +66,7 @@ public class CommandStreaks implements CommandExecutor {
 
     private void showStreakInfo(Player player) {
         int currentStreak = streakManager.getPlayerStreak(player);
+        int longestStreak = streakManager.getPlayerLongestStreak(player);
         long lastLogin = streakManager.getPlayerLastLogin(player);
 
         if (lastLogin == 0) {
@@ -66,6 +82,7 @@ public class CommandStreaks implements CommandExecutor {
 
         player.sendMessage("§e=== Login Streak ===");
         player.sendMessage("§aCurrent streak: §e" + currentStreak + "d");
+        player.sendMessage("§aLongest streak: §e" + longestStreak + "d");
 
         // Format last login time
         SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy 'at' HH:mm");
@@ -85,6 +102,64 @@ public class CommandStreaks implements CommandExecutor {
             }
         } else {
             player.sendMessage("§cYour streak has expired! Login now to start a new streak.");
+        }
+    }
+
+    private void showTopStreaks(Player player) {
+        player.sendMessage("§e=== Top Login Streaks ===");
+
+        java.util.List<java.util.Map.Entry<String, Integer>> topStreaks = streakManager.getTopLongestStreaks(10);
+
+        if (topStreaks.isEmpty()) {
+            player.sendMessage("§7No streak data available yet.");
+            return;
+        }
+
+        int rank = 1;
+        for (java.util.Map.Entry<String, Integer> entry : topStreaks) {
+            String playerName = entry.getKey();
+            int longestStreak = entry.getValue();
+
+            String rankColor = "§7";
+            if (rank == 1) rankColor = "§6"; // Gold for 1st
+            else if (rank == 2) rankColor = "§e"; // Yellow for 2nd
+            else if (rank == 3) rankColor = "§c"; // Red for 3rd
+
+            player.sendMessage(rankColor + rank + ". §a" + playerName + " §7- §e" + longestStreak + "d");
+            rank++;
+        }
+    }
+
+    private void showOtherPlayerInfo(Player player, String targetPlayerName) {
+        // Check if player data exists
+        long lastLogin = streakManager.getPlayerLastLoginByName(targetPlayerName);
+        if (lastLogin == 0) {
+            player.sendMessage("§cPlayer '" + targetPlayerName + "' has no streak data or doesn't exist.");
+            return;
+        }
+
+        int currentStreak = streakManager.getPlayerStreakByName(targetPlayerName);
+        int longestStreak = streakManager.getPlayerLongestStreakByName(targetPlayerName);
+
+        player.sendMessage("§e=== " + targetPlayerName + "'s Login Streak ===");
+        player.sendMessage("§aCurrent streak: §e" + currentStreak + "d");
+        player.sendMessage("§aLongest streak: §e" + longestStreak + "d");
+
+        // Format last login time
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy 'at' HH:mm");
+        dateFormat.setTimeZone(config.getConfiguredTimeZone());
+        String lastLoginFormatted = dateFormat.format(new Date(lastLogin));
+        player.sendMessage("§aLast login: §7" + lastLoginFormatted);
+
+        // Calculate if streak is active or expired
+        long nextLoginDeadline = lastLogin + (24 * 60 * 60 * 1000L);
+        long currentTime = System.currentTimeMillis();
+        long timeRemaining = nextLoginDeadline - currentTime;
+
+        if (timeRemaining > 0) {
+            player.sendMessage("§aStreak status: §eActive");
+        } else {
+            player.sendMessage("§aStreak status: §cExpired");
         }
     }
 

@@ -52,16 +52,6 @@ public final class LoginStreakConfig {
             sb.append("# Use UTC offset numbers: 0=UTC, 1=GMT+1, -5=EST, 8=Asia, etc.\n");
             sb.append("timezone=").append(props.getProperty("timezone", "0")).append("\n\n");
 
-            sb.append("# === DATABASE SETTINGS ===\n");
-            sb.append("# Set enabled=true to use MySQL database for streak tracking\n");
-            sb.append("database.enabled=").append(props.getProperty("database.enabled", "false")).append("\n");
-            sb.append("database.host=").append(props.getProperty("database.host", "localhost")).append("\n");
-            sb.append("database.port=").append(props.getProperty("database.port", "3306")).append("\n");
-            sb.append("database.name=").append(props.getProperty("database.name", "minecraft")).append("\n");
-            sb.append("database.username=").append(props.getProperty("database.username", "root")).append("\n");
-            sb.append("database.password=").append(props.getProperty("database.password", "password")).append("\n");
-            sb.append("database.useSSL=").append(props.getProperty("database.useSSL", "false")).append("\n\n");
-
             sb.append("# === REWARD SETTINGS ===\n");
             sb.append("# Base reward amount that increases each day\n");
             sb.append("reward.increase=").append(props.getProperty("reward.increase", "15.0")).append("\n");
@@ -90,16 +80,6 @@ public final class LoginStreakConfig {
         // === TIMEZONE SETTINGS ===
         // Use UTC offset numbers: 0=UTC, 1=GMT+1, -5=EST, 8=Asia, etc.
         props.setProperty("timezone", "0");
-
-        // === DATABASE SETTINGS ===
-        // Set enabled=true to use MySQL database for streak tracking
-        props.setProperty("database.enabled", "false");
-        props.setProperty("database.host", "localhost");
-        props.setProperty("database.port", "3306");
-        props.setProperty("database.name", "minecraft");
-        props.setProperty("database.username", "root");
-        props.setProperty("database.password", "password");
-        props.setProperty("database.useSSL", "false");
 
         // === REWARD SETTINGS ===
         // Base reward amount that increases each day
@@ -131,13 +111,6 @@ public final class LoginStreakConfig {
 
     private void setDefaults(Properties p) {
         p.setProperty("timezone", "0");
-        p.setProperty("database.enabled", "false");
-        p.setProperty("database.host", "localhost");
-        p.setProperty("database.port", "3306");
-        p.setProperty("database.name", "minecraft");
-        p.setProperty("database.username", "root");
-        p.setProperty("database.password", "password");
-        p.setProperty("database.useSSL", "false");
         p.setProperty("reward.increase", "15.0");
         p.setProperty("reward.max", "500.0");
         p.setProperty("message.reward", "&a{player} reached &e{streak}d &astreak and earned &6${amount}&a!");
@@ -233,37 +206,6 @@ public final class LoginStreakConfig {
         }
     }
 
-    /* ---------------- Database Configuration ---------------- */
-
-    public boolean isDatabaseEnabled() {
-        return getBoolean("database.enabled", false);
-    }
-
-    public String getDatabaseHost() {
-        return props.getProperty("database.host", "localhost");
-    }
-
-    public int getDatabasePort() {
-        return getInt("database.port", 3306);
-    }
-
-    public String getDatabaseName() {
-        return props.getProperty("database.name", "minecraft");
-    }
-
-    public String getDatabaseUsername() {
-        return props.getProperty("database.username", "root");
-    }
-
-    public String getDatabasePassword() {
-        return props.getProperty("database.password", "password");
-    }
-
-    public boolean getDatabaseUseSSL() {
-        return getBoolean("database.useSSL", false);
-    }
-
-
     /* ---------------- Simplified Player Data Management ---------------- */
 
     public long getPlayerLastLogin(String playerName) {
@@ -312,6 +254,29 @@ public final class LoginStreakConfig {
         }
     }
 
+    public int getPlayerLongestStreak(String playerName) {
+        try {
+            File playerDataDir = new File(plugin.getDataFolder(), "playerdata");
+            File playerFile = new File(playerDataDir, playerName + ".yml");
+
+            if (!playerFile.exists()) {
+                return 0;
+            }
+
+            Properties props = new Properties();
+            FileInputStream in = new FileInputStream(playerFile);
+            props.load(in);
+            in.close();
+
+            return Integer.parseInt(props.getProperty("longestStreak", "0"));
+        } catch (Exception e) {
+            if (debug()) {
+                plugin.getServer().getLogger().warning("[LoginStreaks] Failed to load longestStreak for " + playerName + ": " + e.getMessage());
+            }
+            return 0;
+        }
+    }
+
     public void savePlayerData(String playerName, long lastLogin, int streak) {
         try {
             File playerDataDir = new File(plugin.getDataFolder(), "playerdata");
@@ -321,10 +286,17 @@ public final class LoginStreakConfig {
 
             File playerFile = new File(playerDataDir, playerName + ".yml");
 
+            // Load existing longest streak or calculate it
+            int longestStreak = getPlayerLongestStreak(playerName);
+            if (streak > longestStreak) {
+                longestStreak = streak;
+            }
+
             // Write clean player data without any comments
             StringBuilder sb = new StringBuilder();
             sb.append("streak=").append(streak).append("\n");
             sb.append("lastLogin=").append(lastLogin).append("\n");
+            sb.append("longestStreak=").append(longestStreak).append("\n");
 
             FileOutputStream out = new FileOutputStream(playerFile);
             out.write(sb.toString().getBytes());

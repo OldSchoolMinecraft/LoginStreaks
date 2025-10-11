@@ -122,7 +122,8 @@ public class StreakManager {
             // Load from config class
             long lastLogin = config.getPlayerLastLogin(playerName);
             int streak = config.getPlayerStreak(playerName);
-            data = new PlayerStreakData(lastLogin, streak);
+            int longestStreak = config.getPlayerLongestStreak(playerName);
+            data = new PlayerStreakData(lastLogin, streak, longestStreak);
             streakCache.put(playerName, data);
         }
         return data;
@@ -135,10 +136,70 @@ public class StreakManager {
         return data.getStreak();
     }
 
+    public int getPlayerStreakByName(String playerName) {
+        PlayerStreakData data = getOrCreatePlayerData(playerName);
+        return data.getStreak();
+    }
+
+    public int getPlayerLongestStreak(Player player) {
+        String playerName = player.getName();
+        PlayerStreakData data = getOrCreatePlayerData(playerName);
+        return data.getLongestStreak();
+    }
+
+    public int getPlayerLongestStreakByName(String playerName) {
+        PlayerStreakData data = getOrCreatePlayerData(playerName);
+        return data.getLongestStreak();
+    }
+
     public long getPlayerLastLogin(Player player) {
         String playerName = player.getName();
         PlayerStreakData data = getOrCreatePlayerData(playerName);
         return data.getLastLogin();
+    }
+
+    public long getPlayerLastLoginByName(String playerName) {
+        PlayerStreakData data = getOrCreatePlayerData(playerName);
+        return data.getLastLogin();
+    }
+
+    public java.util.List<java.util.Map.Entry<String, Integer>> getTopLongestStreaks(int limit) {
+        java.util.List<java.util.Map.Entry<String, Integer>> topStreaks = new java.util.ArrayList<java.util.Map.Entry<String, Integer>>();
+
+        // Get all player data files
+        java.io.File playerDataDir = new java.io.File(plugin.getDataFolder(), "playerdata");
+        if (!playerDataDir.exists()) {
+            return topStreaks;
+        }
+
+        java.io.File[] playerFiles = playerDataDir.listFiles();
+        if (playerFiles == null) {
+            return topStreaks;
+        }
+
+        // Read each player's longest streak
+        for (java.io.File playerFile : playerFiles) {
+            if (playerFile.getName().endsWith(".yml")) {
+                String playerName = playerFile.getName().substring(0, playerFile.getName().length() - 4);
+                int longestStreak = config.getPlayerLongestStreak(playerName);
+                if (longestStreak > 0) {
+                    topStreaks.add(new java.util.AbstractMap.SimpleEntry<String, Integer>(playerName, longestStreak));
+                }
+            }
+        }
+
+        // Sort by longest streak descending
+        java.util.Collections.sort(topStreaks, new java.util.Comparator<java.util.Map.Entry<String, Integer>>() {
+            public int compare(java.util.Map.Entry<String, Integer> a, java.util.Map.Entry<String, Integer> b) {
+                return b.getValue().compareTo(a.getValue());
+            }
+        });
+
+        // Return top N results
+        if (topStreaks.size() > limit) {
+            return topStreaks.subList(0, limit);
+        }
+        return topStreaks;
     }
 
     public void resetPlayerStreak(Player player) {
@@ -160,10 +221,12 @@ public class StreakManager {
     private static class PlayerStreakData {
         private long lastLogin;
         private int streak;
+        private int longestStreak;
 
         public PlayerStreakData() {
             this.lastLogin = 0;
             this.streak = 0;
+            this.longestStreak = 0;
         }
 
         public PlayerStreakData(long lastLogin, int streak) {
@@ -171,10 +234,25 @@ public class StreakManager {
             this.streak = streak;
         }
 
+        public PlayerStreakData(long lastLogin, int streak, int longestStreak) {
+            this.lastLogin = lastLogin;
+            this.streak = streak;
+            this.longestStreak = longestStreak;
+        }
+
         public long getLastLogin() { return lastLogin; }
         public void setLastLogin(long lastLogin) { this.lastLogin = lastLogin; }
 
         public int getStreak() { return streak; }
-        public void setStreak(int streak) { this.streak = streak; }
+        public void setStreak(int streak) {
+            this.streak = streak;
+            // Update longest streak if current streak is higher
+            if (streak > longestStreak) {
+                longestStreak = streak;
+            }
+        }
+
+        public int getLongestStreak() { return longestStreak; }
+        public void setLongestStreak(int longestStreak) { this.longestStreak = longestStreak; }
     }
 }

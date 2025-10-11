@@ -5,7 +5,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.event.server.ServerListener;
-import org.bukkit.plugin.Plugin;
 
 public class EssentialsHook extends ServerListener {
 
@@ -23,16 +22,16 @@ public class EssentialsHook extends ServerListener {
     @Override
     public void onPluginEnable(PluginEnableEvent e) {
         if (essentials != null) return; // already hooked
-        Plugin p = e.getPlugin();
-        if (p instanceof com.earth2me.essentials.Essentials && p.isEnabled()) {
-            essentials = (com.earth2me.essentials.Essentials) p;
+        org.bukkit.plugin.Plugin p = e.getPlugin();
+        if (p instanceof Essentials && p.isEnabled()) {
+            essentials = (Essentials) p;
             plugin.getServer().getLogger().info("[LoginStreaks] Essentials hooked.");
         }
     }
 
     @Override
     public void onPluginDisable(PluginDisableEvent e) {
-        Plugin p = e.getPlugin();
+        org.bukkit.plugin.Plugin p = e.getPlugin();
         if (p == essentials) {
             essentials = null;
             plugin.getServer().getLogger().info("[LoginStreaks] Essentials unhooked.");
@@ -44,29 +43,31 @@ public class EssentialsHook extends ServerListener {
     }
 
     public boolean canAfford(Player ply, double required) {
-        return essentials.getUser(ply).canAfford(required);
+        if (!isHooked()) return false;
+        return essentials.getUser(ply).getMoney() >= required;
     }
 
     public void takeMoney(Player ply, double amount) {
+        if (!isHooked()) return;
         essentials.getUser(ply).takeMoney(amount);
     }
 
     public double getBalance(Player ply) {
+        if (!isHooked()) return 0.0;
         return essentials.getUser(ply).getMoney();
     }
 
     public void giveMoney(Player ply, double amount) {
+        if (!isHooked()) return;
         essentials.getUser(ply).giveMoney(amount);
     }
 
     private void tryHook() {
-        Plugin p = plugin.getServer().getPluginManager().getPlugin("Essentials");
+        org.bukkit.plugin.Plugin p = plugin.getServer().getPluginManager().getPlugin("Essentials");
 
         if (p instanceof Essentials && p.isEnabled()) {
             essentials = (Essentials) p;
-            plugin.logger.info("Essentials detected and hooked (startup).");
+            plugin.getServer().getLogger().info("[LoginStreaks] Essentials detected and hooked (startup).");
         }
-
     }
-
 }

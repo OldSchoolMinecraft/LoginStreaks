@@ -50,7 +50,7 @@ public class DatabaseConfig {
             sb.append("port=").append(props.getProperty("port", "3306")).append("\n");
             sb.append("name=").append(props.getProperty("name", "minecraft")).append("\n");
             sb.append("username=").append(props.getProperty("username", "root")).append("\n");
-            sb.append("password=").append(props.getProperty("password", "password")).append("\n");
+            sb.append("password=").append(props.getProperty("password", "")).append("\n");
             sb.append("useSSL=").append(props.getProperty("useSSL", "false")).append("\n\n");
 
             sb.append("# === CONNECTION POOL SETTINGS ===\n");
@@ -74,7 +74,7 @@ public class DatabaseConfig {
         props.setProperty("port", "3306");
         props.setProperty("name", "minecraft");
         props.setProperty("username", "root");
-        props.setProperty("password", "password");
+        props.setProperty("password", "");
         props.setProperty("useSSL", "false");
 
         // === CONNECTION POOL SETTINGS ===
@@ -103,7 +103,7 @@ public class DatabaseConfig {
         p.setProperty("port", "3306");
         p.setProperty("name", "minecraft");
         p.setProperty("username", "root");
-        p.setProperty("password", "password");
+        p.setProperty("password", "");
         p.setProperty("useSSL", "false");
         p.setProperty("maxPoolSize", "10");
         p.setProperty("connectionTimeout", "30000");
@@ -133,7 +133,7 @@ public class DatabaseConfig {
     }
 
     public String getPassword() {
-        return props.getProperty("password", "password");
+        return props.getProperty("password", "");
     }
 
     public boolean useSSL() {
