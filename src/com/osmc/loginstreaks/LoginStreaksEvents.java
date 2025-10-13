@@ -24,9 +24,9 @@ public class LoginStreaksEvents extends PlayerListener {
 
     @Override
     public void onPlayerJoin(PlayerJoinEvent event) {
-        Player player = event.getPlayer();
+//        Player player = event.getPlayer();
 
         // Delegate to streak manager
-        streakManager.handlePlayerLogin(player);
+//        streakManager.handlePlayerLogin(player);
     }
 }

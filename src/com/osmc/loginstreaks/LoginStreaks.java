@@ -1,6 +1,7 @@
 package com.osmc.loginstreaks;
 
 import org.bukkit.Bukkit;
+import org.bukkit.event.Event;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.logging.Logger;
@@ -48,6 +49,8 @@ public class LoginStreaks extends JavaPlugin {
 
         // Initialize event handler
         events = new LoginStreaksEvents(this, config, streakManager);
+
+        getServer().getPluginManager().registerEvent(Event.Type.CUSTOM_EVENT, new OSASPoseidonListener(streakManager), Event.Priority.Normal, this);
 
         // Register commands
         CommandStreaks commandHandler = new CommandStreaks(this, streakManager, config);

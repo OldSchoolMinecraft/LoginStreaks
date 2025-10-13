@@ -3,7 +3,6 @@
     <output-path>$PROJECT_DIR$/out/artifacts/LoginStreaks_jar</output-path>
     <root id="archive" name="LoginStreaks.jar">
       <element id="module-output" name="LoginStreaks" />
-      <element id="library" level="project" name="libs" />
     </root>
   </artifact>
 </component>

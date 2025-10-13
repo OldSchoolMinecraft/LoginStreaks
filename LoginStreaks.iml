@@ -23,5 +23,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="libs" level="project" />
     <orderEntry type="library" name="Essentials" level="project" />
+    <orderEntry type="library" name="OSAS" level="project" />
   </component>
 </module>
