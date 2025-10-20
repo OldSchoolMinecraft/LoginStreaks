@@ -7,5 +7,15 @@ author: ItsVollx
 commands:
   loginstreak:
     description: Check your login streak status
-    usage: /<command> [help]
+    usage: /<command> [help|top|<player>]
     aliases: [ls, streak]
+  loginstreakadmin:
+    description: Admin commands for managing login streaks
+    usage: /<command> <set|reset|reload> [player] [amount]
+    aliases: [lsa, streakadmin]
+    permission: loginstreaks.admin
+
+permissions:
+  loginstreaks.admin:
+    description: Allows access to admin commands
+    default: op

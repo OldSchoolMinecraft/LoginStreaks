@@ -59,6 +59,9 @@ public class LoginStreaks extends JavaPlugin {
         CommandStreaks commandHandler = new CommandStreaks(this, streakManager, config);
         this.getCommand("loginstreak").setExecutor(commandHandler);
 
+        CommandStreaksAdmin adminCommandHandler = new CommandStreaksAdmin(this, streakManager, config);
+        this.getCommand("loginstreakadmin").setExecutor(adminCommandHandler);
+
         logger.info("LoginStreaks initialization complete!");
     }
 

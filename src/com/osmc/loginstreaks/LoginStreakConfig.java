@@ -157,10 +157,19 @@ public final class LoginStreakConfig {
 
     /** Calculate reward based on streak day multiplied by increase amount, capped by max */
     public double rewardFor(int streak) {
+        // Day 1 gets no reward, so we don't call this for streak=1
+        // Day 2 should be the first reward (1 × increase)
+        // Day 3 should be (2 × increase), etc.
+        if (streak <= 1) {
+            return 0; // No reward for day 1 or invalid streaks
+        }
+
         double increaseAmount = parseDouble(props.getProperty("reward.increase", "15.0"));
         double maxReward = parseDouble(props.getProperty("reward.max", "500.0"));
 
-        double calculatedReward = streak * increaseAmount;
+        // Calculate reward: (streak - 1) × increaseAmount
+        // This makes day 2 = 1×15=$15, day 3 = 2×15=$30, etc.
+        double calculatedReward = (streak - 1) * increaseAmount;
 
         // Apply max cap if set (0 means no limit)
         if (maxReward > 0 && calculatedReward > maxReward) {

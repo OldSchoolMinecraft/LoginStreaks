@@ -124,10 +124,10 @@ public class StreakManager {
         boolean shouldGiveReward = false;
 
         if (lastLogin == 0) {
-            // First time login
+            // First time login - no reward on day 1
             newStreak = true;
             currentStreak = 1;
-            shouldGiveReward = true; // First time players always get reward
+            shouldGiveReward = false; // First day doesn't get a reward
         } else {
             long timeDiff = currentTime - lastLogin;
             long windowMs = 24 * 60 * 60 * 1000L; // 24 hours exactly - no grace period
@@ -144,12 +144,9 @@ public class StreakManager {
                     shouldGiveReward = false;
                 }
             } else {
-                // Streak broken - reset personal streak
+                // Streak broken - reset personal streak to day 1, no reward
                 currentStreak = 1;
                 newStreak = true;
-                // IMPORTANT: If the player had a previous login (i.e. this is a streak reset),
-                // do NOT give them the reward on the reset day. Only first-ever logins or
-                // legitimate increments grant a reward.
                 shouldGiveReward = false;
             }
         }
