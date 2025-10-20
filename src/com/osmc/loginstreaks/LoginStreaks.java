@@ -47,6 +47,9 @@ public class LoginStreaks extends JavaPlugin {
         // Initialize streak manager
         streakManager = new StreakManager(this, config, essentialsHook, databaseManager);
 
+        // Start cache refresh task
+        streakManager.startCacheRefreshTask();
+
         // Initialize event handler
         events = new LoginStreaksEvents(this, config, streakManager);
 
@@ -62,6 +65,11 @@ public class LoginStreaks extends JavaPlugin {
     @Override
     public void onDisable() {
         logger.info("LoginStreaks has been disabled!");
+
+        // Stop cache refresh task
+        if (streakManager != null) {
+            streakManager.stopCacheRefreshTask();
+        }
 
         // Disconnect from database if connected
         if (databaseManager != null) {

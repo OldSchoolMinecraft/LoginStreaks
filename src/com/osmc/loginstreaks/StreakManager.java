@@ -14,12 +14,101 @@ public class StreakManager {
     private final DatabaseManager database;
     private final Map<String, PlayerStreakData> streakCache;
 
+    // Cached top streaks leaderboard
+    private java.util.List<java.util.Map.Entry<String, Integer>> cachedTopStreaks;
+    private int cacheTaskId = -1;
+    private long lastCacheRefreshTime = 0;
+
     public StreakManager(LoginStreaks plugin, LoginStreakConfig config, EssentialsHook essentials, DatabaseManager database) {
         this.plugin = plugin;
         this.config = config;
         this.essentials = essentials;
         this.database = database;
         this.streakCache = new HashMap<String, PlayerStreakData>();
+        this.cachedTopStreaks = new java.util.ArrayList<java.util.Map.Entry<String, Integer>>();
+    }
+
+    /**
+     * Start the periodic cache refresh task
+     */
+    public void startCacheRefreshTask() {
+        // Initial load
+        refreshTopStreaksCache();
+
+        // Schedule periodic refresh
+        int refreshMinutes = config.getCacheRefreshMinutes();
+        long refreshTicks = refreshMinutes * 60 * 20L; // Convert minutes to ticks (20 ticks = 1 second)
+
+        cacheTaskId = plugin.getServer().getScheduler().scheduleAsyncRepeatingTask(plugin, new Runnable() {
+            public void run() {
+                refreshTopStreaksCache();
+            }
+        }, refreshTicks, refreshTicks);
+
+        if (config.debug()) {
+            plugin.getServer().getLogger().info("[LoginStreaks] Cache refresh task started (every " + refreshMinutes + " minutes)");
+        }
+    }
+
+    /**
+     * Stop the cache refresh task
+     */
+    public void stopCacheRefreshTask() {
+        if (cacheTaskId != -1) {
+            plugin.getServer().getScheduler().cancelTask(cacheTaskId);
+            cacheTaskId = -1;
+            if (config.debug()) {
+                plugin.getServer().getLogger().info("[LoginStreaks] Cache refresh task stopped");
+            }
+        }
+    }
+
+    /**
+     * Refresh the top streaks cache by reading all player files
+     */
+    private void refreshTopStreaksCache() {
+        java.util.List<java.util.Map.Entry<String, Integer>> topStreaks = new java.util.ArrayList<java.util.Map.Entry<String, Integer>>();
+
+        // Get all player data files
+        java.io.File playerDataDir = new java.io.File(plugin.getDataFolder(), "playerdata");
+        if (!playerDataDir.exists()) {
+            cachedTopStreaks = topStreaks;
+            lastCacheRefreshTime = System.currentTimeMillis();
+            return;
+        }
+
+        java.io.File[] playerFiles = playerDataDir.listFiles();
+        if (playerFiles == null) {
+            cachedTopStreaks = topStreaks;
+            lastCacheRefreshTime = System.currentTimeMillis();
+            return;
+        }
+
+        // Read each player's longest streak
+        for (java.io.File playerFile : playerFiles) {
+            if (playerFile.getName().endsWith(".yml")) {
+                String playerName = playerFile.getName().substring(0, playerFile.getName().length() - 4);
+                int longestStreak = config.getPlayerLongestStreak(playerName);
+                if (longestStreak > 0) {
+                    topStreaks.add(new java.util.AbstractMap.SimpleEntry<String, Integer>(playerName, longestStreak));
+                }
+            }
+        }
+
+        // Sort by longest streak descending
+        java.util.Collections.sort(topStreaks, new java.util.Comparator<java.util.Map.Entry<String, Integer>>() {
+            public int compare(java.util.Map.Entry<String, Integer> a, java.util.Map.Entry<String, Integer> b) {
+                return b.getValue().compareTo(a.getValue());
+            }
+        });
+
+        // Update cache
+        cachedTopStreaks = topStreaks;
+        lastCacheRefreshTime = System.currentTimeMillis();
+
+        if (config.debug()) {
+            plugin.getServer().getLogger().info("[LoginStreaks] Top streaks cache refreshed (" + topStreaks.size() + " players)");
+        }
     }
 
     public void handlePlayerLogin(Player player) {
@@ -58,7 +147,10 @@ public class StreakManager {
                 // Streak broken - reset personal streak
                 currentStreak = 1;
                 newStreak = true;
-                shouldGiveReward = true;
+                // IMPORTANT: If the player had a previous login (i.e. this is a streak reset),
+                // do NOT give them the reward on the reset day. Only first-ever logins or
+                // legitimate increments grant a reward.
+                shouldGiveReward = false;
             }
         }
 
@@ -89,7 +181,7 @@ public class StreakManager {
                 player.sendMessage(config.msgContinue(currentStreak, player.getName()));
             }
         } else {
-            // Player already logged in today or it's same-day login
+            // Player already logged in today or it's same-day login or reset-without-reward
             player.sendMessage(config.msgContinue(currentStreak, player.getName()));
         }
     }
@@ -163,43 +255,36 @@ public class StreakManager {
         return data.getLastLogin();
     }
 
+    /**
+     * Get top longest streaks from cache (no file I/O)
+     */
     public java.util.List<java.util.Map.Entry<String, Integer>> getTopLongestStreaks(int limit) {
-        java.util.List<java.util.Map.Entry<String, Integer>> topStreaks = new java.util.ArrayList<java.util.Map.Entry<String, Integer>>();
-
-        // Get all player data files
-        java.io.File playerDataDir = new java.io.File(plugin.getDataFolder(), "playerdata");
-        if (!playerDataDir.exists()) {
-            return topStreaks;
+        // Return from cache instead of reading files
+        if (cachedTopStreaks.size() > limit) {
+            return cachedTopStreaks.subList(0, limit);
         }
+        return cachedTopStreaks;
+    }
 
-        java.io.File[] playerFiles = playerDataDir.listFiles();
-        if (playerFiles == null) {
-            return topStreaks;
+    /**
+     * Force refresh the cache immediately (useful after player streak updates)
+     */
+    public void forceRefreshCache() {
+        refreshTopStreaksCache();
+    }
+
+    /**
+     * Get time in milliseconds until next cache refresh
+     */
+    public long getTimeUntilNextCacheRefresh() {
+        if (lastCacheRefreshTime == 0) {
+            return 0; // Not yet initialized
         }
-
-        // Read each player's longest streak
-        for (java.io.File playerFile : playerFiles) {
-            if (playerFile.getName().endsWith(".yml")) {
-                String playerName = playerFile.getName().substring(0, playerFile.getName().length() - 4);
-                int longestStreak = config.getPlayerLongestStreak(playerName);
-                if (longestStreak > 0) {
-                    topStreaks.add(new java.util.AbstractMap.SimpleEntry<String, Integer>(playerName, longestStreak));
-                }
-            }
-        }
-
-        // Sort by longest streak descending
-        java.util.Collections.sort(topStreaks, new java.util.Comparator<java.util.Map.Entry<String, Integer>>() {
-            public int compare(java.util.Map.Entry<String, Integer> a, java.util.Map.Entry<String, Integer> b) {
-                return b.getValue().compareTo(a.getValue());
-            }
-        });
-
-        // Return top N results
-        if (topStreaks.size() > limit) {
-            return topStreaks.subList(0, limit);
-        }
-        return topStreaks;
+        int refreshMinutes = config.getCacheRefreshMinutes();
+        long refreshIntervalMs = refreshMinutes * 60 * 1000L;
+        long nextRefreshTime = lastCacheRefreshTime + refreshIntervalMs;
+        long timeRemaining = nextRefreshTime - System.currentTimeMillis();
+        return timeRemaining > 0 ? timeRemaining : 0;
     }
 
     public void resetPlayerStreak(Player player) {

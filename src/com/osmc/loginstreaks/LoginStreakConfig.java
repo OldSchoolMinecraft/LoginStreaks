@@ -58,6 +58,10 @@ public final class LoginStreakConfig {
             sb.append("# Maximum reward cap (0 = no limit)\n");
             sb.append("reward.max=").append(props.getProperty("reward.max", "500.0")).append("\n\n");
 
+            sb.append("# === CACHE SETTINGS ===\n");
+            sb.append("# How often to refresh the top streaks leaderboard cache (in minutes)\n");
+            sb.append("cache.refresh_minutes=").append(props.getProperty("cache.refresh_minutes", "5")).append("\n\n");
+
             sb.append("# === PLAYER MESSAGES ===\n");
             sb.append("message.reward=").append(props.getProperty("message.reward", "&a{player} reached &e{streak}d &astreak and earned &6${amount}&a!")).append("\n");
             sb.append("message.continue=").append(props.getProperty("message.continue", "&e{player}&a's login streak: &e{streak}d&a.")).append("\n");
@@ -87,6 +91,10 @@ public final class LoginStreakConfig {
         // Maximum reward cap (0 = no limit)
         props.setProperty("reward.max", "500.0");
 
+        // === CACHE SETTINGS ===
+        // How often to refresh the top streaks leaderboard cache (in minutes)
+        props.setProperty("cache.refresh_minutes", "5");
+
         // === PLAYER MESSAGES ===
         props.setProperty("message.reward", "&a{player} reached &e{streak}d &astreak and earned &6${amount}&a!");
         props.setProperty("message.continue", "&e{player}&a's login streak: &e{streak}d&a.");
@@ -113,6 +121,7 @@ public final class LoginStreakConfig {
         p.setProperty("timezone", "0");
         p.setProperty("reward.increase", "15.0");
         p.setProperty("reward.max", "500.0");
+        p.setProperty("cache.refresh_minutes", "5");
         p.setProperty("message.reward", "&a{player} reached &e{streak}d &astreak and earned &6${amount}&a!");
         p.setProperty("message.continue", "&e{player}&a's login streak: &e{streak}d&a.");
         p.setProperty("message.reset", "&cYour streak has reset.");
@@ -159,6 +168,10 @@ public final class LoginStreakConfig {
         }
 
         return calculatedReward;
+    }
+
+    public int getCacheRefreshMinutes() {
+        return getInt("cache.refresh_minutes", 5);
     }
 
     /* ---------------- Helpers ---------------- */

@@ -75,8 +75,8 @@ public class CommandStreaks implements CommandExecutor {
             return;
         }
 
-        // Calculate next login deadline
-        long nextLoginDeadline = lastLogin + (24 * 60 * 60 * 1000L); // 24 hours from last login
+        // Calculate next login deadline (24 hours from last login)
+        long nextLoginDeadline = lastLogin + (24 * 60 * 60 * 1000L);
         long currentTime = System.currentTimeMillis();
         long timeRemaining = nextLoginDeadline - currentTime;
 
@@ -92,8 +92,22 @@ public class CommandStreaks implements CommandExecutor {
 
         // Show time remaining or if streak expired
         if (timeRemaining > 0) {
-            String timeRemainingFormatted = formatTimeRemaining(timeRemaining);
-            player.sendMessage("§aNext login needed in: §e" + timeRemainingFormatted);
+            // Calculate time until next midnight (when streak can be incremented)
+            java.util.Calendar nextMidnight = java.util.Calendar.getInstance(config.getConfiguredTimeZone());
+            nextMidnight.setTimeInMillis(currentTime);
+            nextMidnight.add(java.util.Calendar.DAY_OF_YEAR, 1);
+            nextMidnight.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            nextMidnight.set(java.util.Calendar.MINUTE, 0);
+            nextMidnight.set(java.util.Calendar.SECOND, 0);
+            nextMidnight.set(java.util.Calendar.MILLISECOND, 0);
+
+            long timeUntilNextStreak = nextMidnight.getTimeInMillis() - currentTime;
+            String timeRemainingFormatted = formatTimeRemaining(timeUntilNextStreak);
+            player.sendMessage("§aNext login available in: §e" + timeRemainingFormatted);
+
+            // Show streak expiration deadline
+            String expirationFormatted = formatTimeRemaining(timeRemaining);
+            player.sendMessage("§cStreak expires in: §e" + expirationFormatted);
 
             // Show next reward
             double nextReward = config.rewardFor(currentStreak + 1);
@@ -127,6 +141,15 @@ public class CommandStreaks implements CommandExecutor {
 
             player.sendMessage(rankColor + rank + ". §a" + playerName + " §7- §e" + longestStreak + "d");
             rank++;
+        }
+
+        // Display next cache update time
+        long timeUntilUpdate = streakManager.getTimeUntilNextCacheRefresh();
+        if (timeUntilUpdate > 0) {
+            String timeFormatted = formatTimeRemaining(timeUntilUpdate);
+            player.sendMessage("§7Next update in: §e" + timeFormatted);
+        } else {
+            player.sendMessage("§7Next update: §eRefreshing soon...");
         }
     }
 
@@ -166,11 +189,14 @@ public class CommandStreaks implements CommandExecutor {
     private String formatTimeRemaining(long timeMs) {
         long hours = TimeUnit.MILLISECONDS.toHours(timeMs);
         long minutes = TimeUnit.MILLISECONDS.toMinutes(timeMs) % 60;
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(timeMs) % 60;
 
         if (hours > 0) {
-            return hours + "h " + minutes + "m";
+            return hours + "h " + minutes + "m " + seconds + "s";
+        } else if (minutes > 0) {
+            return minutes + "m " + seconds + "s";
         } else {
-            return minutes + "m";
+            return seconds + "s";
         }
     }
 }

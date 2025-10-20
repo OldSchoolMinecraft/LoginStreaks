@@ -62,4 +62,5 @@ public class DatabaseManager {
             System.err.println("[LoginStreaks] Error disconnecting: " + e.getMessage());
         }
     }
+    
 }
