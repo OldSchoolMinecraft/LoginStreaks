@@ -24,19 +24,29 @@ public final class LoginStreakConfig {
 
     public void load() {
         try {
-            if (!plugin.getDataFolder().exists()) plugin.getDataFolder().mkdirs();
+            plugin.logger.info("[LoginStreaks] Loading config from: " + file.getAbsolutePath());
+            if (!plugin.getDataFolder().exists()) {
+                boolean created = plugin.getDataFolder().mkdirs();
+                plugin.logger.info("[LoginStreaks] Created data folder: " + created);
+            }
             if (!file.exists()) {
+                plugin.logger.info("[LoginStreaks] Config file does not exist, creating defaults...");
                 setDefaults();
                 save(); // write defaults
+                plugin.logger.info("[LoginStreaks] Config file created!");
             }
             FileInputStream in = new FileInputStream(file);
             props.load(in);
             in.close();
             // ensure any newly added defaults exist
             boolean changed = ensureMissingDefaults();
-            if (changed) save();
+            if (changed) {
+                save();
+                plugin.logger.info("[LoginStreaks] Added missing config options");
+            }
         } catch (Exception e) {
             plugin.logger.warning("[LoginStreak] Failed to load config: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -66,6 +76,13 @@ public final class LoginStreakConfig {
             sb.append("message.reward=").append(props.getProperty("message.reward", "&a{player} reached &e{streak}d &astreak and earned &6${amount}&a!")).append("\n");
             sb.append("message.continue=").append(props.getProperty("message.continue", "&e{player}&a's login streak: &e{streak}d&a.")).append("\n");
             sb.append("message.reset=").append(props.getProperty("message.reset", "&cYour streak has reset.")).append("\n\n");
+
+            sb.append("# === STREAK WARNING MESSAGES ===\n");
+            sb.append("# {time} = minutes/seconds remaining\n");
+            sb.append("warning.minutes=").append(props.getProperty("warning.minutes", "&eWARNING: &6Your LoginStreak expires in &c{time} &6minutes! Reconnect to save it!")).append("\n");
+            sb.append("warning.seconds=").append(props.getProperty("warning.seconds", "&cWARNING: &4LoginStreak expires in &c{time} &4seconds! Reconnect now!")).append("\n");
+            sb.append("warning.countdown=").append(props.getProperty("warning.countdown", "&cLoginStreak expires in: &4{time}")).append("\n");
+            sb.append("warning.expired=").append(props.getProperty("warning.expired", "&4Your LoginStreak is gone!")).append("\n\n");
 
             sb.append("# === DEBUG SETTINGS ===\n");
             sb.append("debug=").append(props.getProperty("debug", "false")).append("\n");
@@ -100,6 +117,12 @@ public final class LoginStreakConfig {
         props.setProperty("message.continue", "&e{player}&a's login streak: &e{streak}d&a.");
         props.setProperty("message.reset", "&cYour streak has reset.");
 
+        // === STREAK WARNING MESSAGES ===
+        props.setProperty("warning.minutes", "&eWARNING: &6Your LoginStreak expires in &c{time} &6minutes! Reconnect to save it!");
+        props.setProperty("warning.seconds", "&cWARNING: &4LoginStreak expires in &c{time} &4seconds! Reconnect now!");
+        props.setProperty("warning.countdown", "&cLoginStreak expires in: &4{time}");
+        props.setProperty("warning.expired", "&4Your LoginStreak is gone!");
+
         // === DEBUG SETTINGS ===
         props.setProperty("debug", "false");
     }
@@ -125,6 +148,10 @@ public final class LoginStreakConfig {
         p.setProperty("message.reward", "&a{player} reached &e{streak}d &astreak and earned &6${amount}&a!");
         p.setProperty("message.continue", "&e{player}&a's login streak: &e{streak}d&a.");
         p.setProperty("message.reset", "&cYour streak has reset.");
+        p.setProperty("warning.minutes", "&eWARNING: &6Your LoginStreak expires in &c{time} &6minutes! Reconnect to save it!");
+        p.setProperty("warning.seconds", "&cWARNING: &4LoginStreak expires in &c{time} &4seconds! Reconnect now!");
+        p.setProperty("warning.countdown", "&cLoginStreak expires in: &4{time}");
+        p.setProperty("warning.expired", "&4Your login streak is gone!");
         p.setProperty("debug", "false");
     }
 
@@ -152,6 +179,30 @@ public final class LoginStreakConfig {
     public String msgReset() {
         String s = props.getProperty("message.reset",
                 "&cYour streak has reset.");
+        return color(s);
+    }
+
+    /* ---------------- Warning Message Getters ---------------- */
+
+    public String msgWarningMinutes(int minutes) {
+        String s = props.getProperty("warning.minutes",
+                "&eWARNING: &6Your LoginStreak expires in &c{time} &6minutes! Reconnect to save it!");
+        return color(s.replace("{time}", String.valueOf(minutes)));
+    }
+
+    public String msgWarningSeconds(int seconds) {
+        String s = props.getProperty("warning.seconds",
+                "&cWARNING: &4LoginStreak expires in &c{time} &4seconds! Reconnect now!");
+        return color(s.replace("{time}", String.valueOf(seconds)));
+    }
+
+    public String msgWarningCountdown(int seconds) {
+        String s = props.getProperty("warning.countdown", "&cLoginStreak expires in: &4{time}");
+        return color(s.replace("{time}", String.valueOf(seconds)));
+    }
+
+    public String msgWarningExpired() {
+        String s = props.getProperty("warning.expired", "&4Your LoginStreak is gone!");
         return color(s);
     }
 

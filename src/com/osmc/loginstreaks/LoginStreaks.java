@@ -13,6 +13,7 @@ public class LoginStreaks extends JavaPlugin {
     private DatabaseConfig databaseConfig;
     private EssentialsHook essentialsHook;
     private StreakManager streakManager;
+    private StreakWarningManager warningManager;
     private LoginStreaksEvents events;
     private DatabaseManager databaseManager;
 
@@ -50,8 +51,12 @@ public class LoginStreaks extends JavaPlugin {
         // Start cache refresh task
         streakManager.startCacheRefreshTask();
 
+        // Initialize and start streak warning manager
+        warningManager = new StreakWarningManager(this, streakManager, config);
+        warningManager.start();
+
         // Initialize event handler
-        events = new LoginStreaksEvents(this, config, streakManager);
+        events = new LoginStreaksEvents(this, config, streakManager, warningManager);
 
         getServer().getPluginManager().registerEvent(Event.Type.CUSTOM_EVENT, new OSASPoseidonListener(streakManager), Event.Priority.Normal, this);
 
@@ -72,6 +77,11 @@ public class LoginStreaks extends JavaPlugin {
         // Stop cache refresh task
         if (streakManager != null) {
             streakManager.stopCacheRefreshTask();
+        }
+
+        // Stop warning manager
+        if (warningManager != null) {
+            warningManager.stop();
         }
 
         // Disconnect from database if connected
@@ -103,5 +113,9 @@ public class LoginStreaks extends JavaPlugin {
 
     public DatabaseConfig getDatabaseConfig() {
         return databaseConfig;
+    }
+
+    public StreakWarningManager getWarningManager() {
+        return warningManager;
     }
 }

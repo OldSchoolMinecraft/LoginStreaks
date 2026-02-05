@@ -46,6 +46,9 @@ public class CommandStreaksAdmin implements CommandExecutor {
             case "refresh":
                 handleRefreshCommand(sender);
                 break;
+            case "settime":
+                handleSetTimeCommand(sender, args);
+                break;
             case "help":
                 showAdminHelp(sender);
                 break;
@@ -61,6 +64,7 @@ public class CommandStreaksAdmin implements CommandExecutor {
         sender.sendMessage("§e=== LoginStreaks Admin Commands ===");
         sender.sendMessage("§a/lsa set <player> <streak> §7- Set a player's current streak");
         sender.sendMessage("§a/lsa reset <player> §7- Reset a player's streak to 0");
+        sender.sendMessage("§a/lsa settime <player> <h> <m> <s> §7- Set time until streak expires");
         sender.sendMessage("§a/lsa reload §7- Reload the configuration");
         sender.sendMessage("§a/lsa refresh §7- Force refresh the leaderboard cache");
         sender.sendMessage("§a/lsa help §7- Show this help message");
@@ -172,6 +176,73 @@ public class CommandStreaksAdmin implements CommandExecutor {
         } catch (Exception e) {
             sender.sendMessage("§cFailed to refresh cache: " + e.getMessage());
             plugin.getServer().getLogger().warning("[LoginStreaks] Failed to refresh cache: " + e.getMessage());
+        }
+    }
+
+    private void handleSetTimeCommand(CommandSender sender, String[] args) {
+        // /lsa settime <player> <hours> <minutes> <seconds>
+        if (args.length < 5) {
+            sender.sendMessage("§cUsage: /lsa settime <player> <h> <m> <s>");
+            sender.sendMessage("§7Example: /lsa settime Player1 0 5 30 §8(5m 30s until expiration)");
+            return;
+        }
+
+        // Try to find online player to get correct case
+        String inputName = args[1];
+        Player targetPlayer = plugin.getServer().getPlayer(inputName);
+        String targetPlayerName = (targetPlayer != null) ? targetPlayer.getName() : inputName;
+        
+        int hours, minutes, seconds;
+
+        try {
+            hours = Integer.parseInt(args[2]);
+            minutes = Integer.parseInt(args[3]);
+            seconds = Integer.parseInt(args[4]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage("§cInvalid time values. Must be numbers.");
+            return;
+        }
+
+        if (hours < 0 || minutes < 0 || seconds < 0) {
+            sender.sendMessage("§cTime values must be 0 or greater.");
+            return;
+        }
+
+        // Calculate total time until expiration in milliseconds
+        long totalSecondsUntilExpiry = (hours * 3600L) + (minutes * 60L) + seconds;
+        
+        // Expiration window is 24 hours (same as StreakWarningManager)
+        long expirationPeriod = 24 * 60 * 60 * 1000L;
+        
+        // Calculate what the lastLogin should be so that it expires in the desired time
+        // currentTime + timeUntilExpiry = lastLogin + expirationPeriod
+        // lastLogin = currentTime + timeUntilExpiry - expirationPeriod
+        long currentTime = System.currentTimeMillis();
+        long newLastLogin = currentTime + (totalSecondsUntilExpiry * 1000L) - expirationPeriod;
+
+        // Get current streak (preserve it)
+        int currentStreak = streakManager.getPlayerStreakByName(targetPlayerName);
+        if (currentStreak == 0) {
+            currentStreak = 1; // At least 1 day streak for testing
+        }
+
+        // Save with new lastLogin
+        config.savePlayerData(targetPlayerName, newLastLogin, currentStreak);
+
+        // Update cache
+        streakManager.reloadPlayerData(targetPlayerName);
+
+        // Also reset warning state so warnings trigger fresh
+        plugin.getWarningManager().onPlayerJoin(targetPlayerName);
+
+        sender.sendMessage("§aSet §e" + targetPlayerName + "§a's expiration to §e" + hours + "h " + minutes + "m " + seconds + "s §afrom now.");
+        sender.sendMessage("§7Their streak will expire at that time if they don't login.");
+        
+        // Debug: show the actual calculated values
+        if (config.debug()) {
+            long remaining = plugin.getWarningManager().getTimeUntilExpiration(targetPlayerName);
+            sender.sendMessage("§7[Debug] newLastLogin=" + newLastLogin + ", remaining=" + remaining + "ms");
+            plugin.getServer().getLogger().info("[LoginStreaks] " + sender.getName() + " set " + targetPlayerName + "'s expiration time to " + hours + "h " + minutes + "m " + seconds + "s");
         }
     }
 }

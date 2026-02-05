@@ -299,6 +299,18 @@ public class StreakManager {
         config.savePlayerData(playerName, data.getLastLogin(), streak);
     }
 
+    /**
+     * Reload a player's data from file and update the cache.
+     * Used after admin commands modify player data externally.
+     */
+    public void reloadPlayerData(String playerName) {
+        long lastLogin = config.getPlayerLastLogin(playerName);
+        int streak = config.getPlayerStreak(playerName);
+        int longestStreak = config.getPlayerLongestStreak(playerName);
+        PlayerStreakData data = new PlayerStreakData(lastLogin, streak, longestStreak);
+        streakCache.put(playerName, data);
+    }
+
     // Inner class to hold player streak data
     private static class PlayerStreakData {
         private long lastLogin;

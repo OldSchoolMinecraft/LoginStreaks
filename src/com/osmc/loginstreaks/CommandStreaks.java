@@ -36,6 +36,12 @@ public class CommandStreaks implements CommandExecutor {
             return true;
         }
 
+        // Handle info command
+        if (args.length > 0 && args[0].equalsIgnoreCase("info")) {
+            showInfo(player);
+            return true;
+        }
+
         // Handle top command
         if (args.length > 0 && args[0].equalsIgnoreCase("top")) {
             showTopStreaks(player);
@@ -56,12 +62,20 @@ public class CommandStreaks implements CommandExecutor {
 
     private void showHelp(Player player) {
         player.sendMessage("§e=== LoginStreaks Help ===");
-        player.sendMessage("§a/loginstreak §7- Show your current streak status");
-        player.sendMessage("§a/loginstreak <player> §7- Show another player's streak");
-        player.sendMessage("§a/loginstreak top §7- Show top login streaks");
-        player.sendMessage("§a/loginstreak help §7- Show this help message");
+        player.sendMessage("§a/ls §7- Show your current streak status");
+        player.sendMessage("§a/ls <player> §7- Show another player's streak");
+        player.sendMessage("§a/ls top §7- Show top login streaks");
+        player.sendMessage("§a/ls info §7- Show plugin information");
+        player.sendMessage("§a/ls help §7- Show this help message");
         player.sendMessage("");
         player.sendMessage("§7Login daily to maintain your streak and earn rewards!");
+    }
+
+    private void showInfo(Player player) {
+        player.sendMessage("§e=== LoginStreaks ===");
+        player.sendMessage("§7Version: §a1.0");
+        player.sendMessage("§7Developer: §aItsVollx");
+        player.sendMessage("§7Login daily to build your streak and earn rewards!");
     }
 
     private void showStreakInfo(Player player) {
