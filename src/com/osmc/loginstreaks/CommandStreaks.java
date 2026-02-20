@@ -5,9 +5,16 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
+
+import static com.oldschoolminecraft.OSMEss.Commands.CommandSeen.getPlayerTimeZone;
 
 public class CommandStreaks implements CommandExecutor {
 
@@ -15,10 +22,15 @@ public class CommandStreaks implements CommandExecutor {
     private final StreakManager streakManager;
     private final LoginStreakConfig config;
 
+    //OSM-Ess Retrieve Timezone Directory
+    public static File TIMEZONE_DATA_DIR;
+
+
     public CommandStreaks(LoginStreaks plugin, StreakManager streakManager, LoginStreakConfig config) {
         this.plugin = plugin;
         this.streakManager = streakManager;
         this.config = config;
+        TIMEZONE_DATA_DIR = new File("timezone-settings");
     }
 
     @Override
@@ -213,6 +225,7 @@ public class CommandStreaks implements CommandExecutor {
             String lastLoginFormatted = dateFormat.format(new Date(lastLogin));
             player.sendMessage("§aLast login: §7" + lastLoginFormatted);
         }
+
 
         // Calculate if streak is active or expired
         long nextLoginDeadline = lastLogin + (24 * 60 * 60 * 1000L);
