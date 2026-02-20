@@ -1,5 +1,6 @@
 package com.osmc.loginstreaks;
 
+import com.oldschoolminecraft.OSMEss.OSMEss;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -17,12 +18,24 @@ public class LoginStreaks extends JavaPlugin {
     private LoginStreaksEvents events;
     private DatabaseManager databaseManager;
 
+    public OSMEss osmEss;
+
     @Override
     public void onEnable() {
         logger.info("LoginStreaks has been enabled!");
 
         // Initialize Essentials hook
         essentialsHook = new EssentialsHook(this);
+
+        // Initialize OSM-Ess API (Soft Depend)
+        if (getServer().getPluginManager().getPlugin("OSM-Ess") != null) {
+            osmEss = (OSMEss) getServer().getPluginManager().getPlugin("OSM-Ess");
+            Bukkit.getServer().getLogger().info("[LoginStreaks] OSM-Ess v" + osmEss.getDescription().getVersion() + " found!");
+        }
+        else {
+            Bukkit.getServer().getLogger().severe("[LoginStreaks] OSM-Ess not found, thus its api functions are disabled!");
+        }
+
 
         // Load main configuration
         config = new LoginStreakConfig(this);
@@ -97,6 +110,18 @@ public class LoginStreaks extends JavaPlugin {
 
     public EssentialsHook getEssentialsHook() {
         return essentialsHook;
+    }
+
+    public boolean isOSMEssEnabled() {
+        if (getServer().getPluginManager().getPlugin("OSM-Ess") != null && getServer().getPluginManager().isPluginEnabled("OSM-Ess")) return true;
+        else return false;
+    }
+
+    public OSMEss getOSMEss() {
+        if (isOSMEssEnabled()) {
+            return osmEss;
+        }
+        else return null;
     }
 
     public StreakManager getStreakManager() {
