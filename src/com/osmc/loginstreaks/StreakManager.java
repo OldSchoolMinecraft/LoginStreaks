@@ -119,58 +119,41 @@ public class StreakManager {
         long lastLogin = data.getLastLogin();
         int currentStreak = data.getStreak();
 
-        boolean streakContinues = false;
         boolean newStreak = false;
         boolean shouldGiveReward = false;
 
         if (lastLogin == 0) {
-            // First time login - no reward on day 1
-            newStreak = true;
+            // First-ever login
             currentStreak = 1;
-            shouldGiveReward = false; // First day doesn't get a reward
+            newStreak = true;
+            shouldGiveReward = false;
+        } else if (isSameDay(lastLogin, currentTime)) {
+            // Same calendar day — do nothing
+            shouldGiveReward = false;
+        } else if (isNextDay(lastLogin, currentTime)) {
+            // Correct next-day login
+            currentStreak++;
+            shouldGiveReward = true;
         } else {
-            long timeDiff = currentTime - lastLogin;
-            long windowMs = 24 * 60 * 60 * 1000L; // 24 hours exactly - no grace period
-
-            if (timeDiff <= windowMs) {
-                // Within streak window
-                if (isNewDay(lastLogin, currentTime)) {
-                    currentStreak++;
-                    streakContinues = true;
-                    shouldGiveReward = true;
-                } else {
-                    // Same day login - no streak increment, no reward
-                    streakContinues = true;
-                    shouldGiveReward = false;
-                }
-            } else {
-                // Streak broken - reset personal streak to day 1, no reward
-                currentStreak = 1;
-                newStreak = true;
-                shouldGiveReward = false;
-            }
+            // Missed one or more days
+            currentStreak = 1;
+            newStreak = true;
+            shouldGiveReward = false;
         }
 
-        // Update data
+        // Persist
         data.setLastLogin(currentTime);
         data.setStreak(currentStreak);
         streakCache.put(playerName, data);
-
-        // Save to file using config class
         config.savePlayerData(playerName, currentTime, currentStreak);
 
-        // Handle rewards and messages
-        if (newStreak && currentStreak == 1) {
-            // Don't show reset message for first-time players
-            if (lastLogin != 0) {
-                player.sendMessage(config.msgReset());
-            }
+        // Messaging
+        if (newStreak && lastLogin != 0) {
+            player.sendMessage(config.msgReset());
         }
 
         if (shouldGiveReward) {
-            // Use personal streak for reward calculation
             double reward = config.rewardFor(currentStreak);
-
             if (reward > 0 && essentials.isHooked()) {
                 essentials.giveMoney(player, reward);
                 player.sendMessage(config.msgReward(currentStreak, reward, player.getName()));
@@ -178,31 +161,30 @@ public class StreakManager {
                 player.sendMessage(config.msgContinue(currentStreak, player.getName()));
             }
         } else {
-            // Player already logged in today or it's same-day login or reset-without-reward
             player.sendMessage(config.msgContinue(currentStreak, player.getName()));
         }
     }
 
-    private boolean isNewDay(long lastLogin, long currentTime) {
-        Calendar lastCal = Calendar.getInstance();
-        lastCal.setTimeInMillis(lastLogin);
+    private boolean isSameDay(long a, long b) {
+        Calendar ca = Calendar.getInstance();
+        Calendar cb = Calendar.getInstance();
+        ca.setTimeInMillis(a);
+        cb.setTimeInMillis(b);
 
-        Calendar currentCal = Calendar.getInstance();
-        currentCal.setTimeInMillis(currentTime);
+        return ca.get(Calendar.YEAR) == cb.get(Calendar.YEAR)
+                && ca.get(Calendar.DAY_OF_YEAR) == cb.get(Calendar.DAY_OF_YEAR);
+    }
 
-        // Check if it's a different day (hardcoded reset at midnight)
-        int resetHour = 0; // Hardcoded to midnight
+    private boolean isNextDay(long last, long now) {
+        Calendar ca = Calendar.getInstance();
+        Calendar cb = Calendar.getInstance();
+        ca.setTimeInMillis(last);
+        cb.setTimeInMillis(now);
 
-        // Adjust for reset hour
-        if (lastCal.get(Calendar.HOUR_OF_DAY) < resetHour) {
-            lastCal.add(Calendar.DAY_OF_YEAR, -1);
-        }
-        if (currentCal.get(Calendar.HOUR_OF_DAY) < resetHour) {
-            currentCal.add(Calendar.DAY_OF_YEAR, -1);
-        }
+        ca.add(Calendar.DAY_OF_YEAR, 1);
 
-        return lastCal.get(Calendar.DAY_OF_YEAR) != currentCal.get(Calendar.DAY_OF_YEAR) ||
-               lastCal.get(Calendar.YEAR) != currentCal.get(Calendar.YEAR);
+        return ca.get(Calendar.YEAR) == cb.get(Calendar.YEAR)
+                && ca.get(Calendar.DAY_OF_YEAR) == cb.get(Calendar.DAY_OF_YEAR);
     }
 
     private PlayerStreakData getOrCreatePlayerData(String playerName) {
