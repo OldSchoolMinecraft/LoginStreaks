@@ -100,9 +100,22 @@ public class CommandStreaks implements CommandExecutor {
 
         // Format last login time
         SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy 'at' HH:mm");
-        dateFormat.setTimeZone(config.getConfiguredTimeZone());
-        String lastLoginFormatted = dateFormat.format(new Date(lastLogin));
-        player.sendMessage("§aLast login: §7" + lastLoginFormatted);
+
+        //Incorporate OSM-Ess's Player Based Timezone Fuction
+        if (plugin.isOSMEssEnabled()) {
+            if (plugin.osmEss.playerDataHandler.hasTimeZoneData(player) && !getPlayerTimeZone(player).endsWith("c")) { //Timezone isn't default UTC.
+                ZoneId zone = ZoneId.of(getPlayerTimeZone(player));
+                LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(lastLogin), zone);
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm").withZone(zone);
+                String lastLoginFormatted2 = dateTime.atZone(zone).format(formatter);
+                player.sendMessage("§aLast login: §7" + lastLoginFormatted2);
+            }
+        }
+        else {
+            dateFormat.setTimeZone(config.getConfiguredTimeZone());
+            String lastLoginFormatted = dateFormat.format(new Date(lastLogin));
+            player.sendMessage("§aLast login: §7" + lastLoginFormatted);
+        }
 
         // Show time remaining or if streak expired
         if (timeRemaining > 0) {
@@ -184,9 +197,22 @@ public class CommandStreaks implements CommandExecutor {
 
         // Format last login time
         SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy 'at' HH:mm");
-        dateFormat.setTimeZone(config.getConfiguredTimeZone());
-        String lastLoginFormatted = dateFormat.format(new Date(lastLogin));
-        player.sendMessage("§aLast login: §7" + lastLoginFormatted);
+
+        //Incorporate OSM-Ess's Player Based Timezone Fuction
+        if (plugin.isOSMEssEnabled()) {
+            if (plugin.osmEss.playerDataHandler.hasTimeZoneData(player) && !getPlayerTimeZone(player).endsWith("c")) { //Timezone isn't default UTC.
+                ZoneId zone = ZoneId.of(getPlayerTimeZone(player));
+                LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(lastLogin), zone);
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm").withZone(zone);
+                String lastLoginFormatted2 = dateTime.atZone(zone).format(formatter);
+                player.sendMessage("§aLast login: §7" + lastLoginFormatted2);
+            }
+        }
+        else {
+            dateFormat.setTimeZone(config.getConfiguredTimeZone());
+            String lastLoginFormatted = dateFormat.format(new Date(lastLogin));
+            player.sendMessage("§aLast login: §7" + lastLoginFormatted);
+        }
 
         // Calculate if streak is active or expired
         long nextLoginDeadline = lastLogin + (24 * 60 * 60 * 1000L);
