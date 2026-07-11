@@ -112,57 +112,60 @@ public class StreakManager {
     }
 
     public void handlePlayerLogin(Player player) {
-        String playerName = player.getName();
-
+        String playerName = player.getName().toLowerCase();
         long currentTime = System.currentTimeMillis();
+
         PlayerStreakData data = getOrCreatePlayerData(playerName);
         long lastLogin = data.getLastLogin();
-        int currentStreak = data.getStreak();
 
-        boolean newStreak = false;
-        boolean shouldGiveReward = false;
+        LoginResult result = classifyLogin(lastLogin, currentTime);
+        int currentStreak = nextStreakValue(data.getStreak(), result);
 
-        if (lastLogin == 0) {
-            // First-ever login
-            currentStreak = 1;
-            newStreak = true;
-            shouldGiveReward = false;
-        } else if (isSameDay(lastLogin, currentTime)) {
-            // Same calendar day — do nothing
-            shouldGiveReward = false;
-        } else if (isNextDay(lastLogin, currentTime)) {
-            // Correct next-day login
-            currentStreak++;
-            shouldGiveReward = true;
-        } else {
-            // Missed one or more days
-            currentStreak = 1;
-            newStreak = true;
-            shouldGiveReward = false;
-        }
-
-        // Persist
         data.setLastLogin(currentTime);
         data.setStreak(currentStreak);
         streakCache.put(playerName, data);
         config.savePlayerData(playerName, currentTime, currentStreak);
 
-        // Messaging
-        if (newStreak && lastLogin != 0) {
+        sendLoginMessages(player, result, currentStreak);
+    }
+
+    private LoginResult classifyLogin(long lastLogin, long currentTime) {
+        if (lastLogin == 0) return LoginResult.FIRST_LOGIN;
+        if (isSameDay(lastLogin, currentTime)) return LoginResult.SAME_DAY;
+        if (isNextDay(lastLogin, currentTime)) return LoginResult.CONSECUTIVE_DAY;
+        return LoginResult.STREAK_BROKEN;
+    }
+
+    private int nextStreakValue(int currentStreak, LoginResult result) {
+        switch (result) {
+            case FIRST_LOGIN:
+            case STREAK_BROKEN:
+                return 1;
+            case CONSECUTIVE_DAY:
+                return currentStreak + 1;
+            case SAME_DAY:
+            default:
+                return currentStreak;
+        }
+    }
+
+    private void sendLoginMessages(Player player, LoginResult result, int currentStreak) {
+        if (result == LoginResult.STREAK_BROKEN) {
             player.sendMessage(config.msgReset());
+            // NOTE: original code also falls through to msgContinue below for this
+            // case - preserved as-is rather than assumed to be a bug.
         }
 
-        if (shouldGiveReward) {
+        if (result == LoginResult.CONSECUTIVE_DAY) {
             double reward = config.rewardFor(currentStreak);
             if (reward > 0 && essentials.isHooked()) {
                 essentials.giveMoney(player, reward);
                 player.sendMessage(config.msgReward(currentStreak, reward, player.getName()));
-            } else {
-                player.sendMessage(config.msgContinue(currentStreak, player.getName()));
+                return;
             }
-        } else {
-            player.sendMessage(config.msgContinue(currentStreak, player.getName()));
         }
+
+        player.sendMessage(config.msgContinue(currentStreak, player.getName()));
     }
 
     private boolean isSameDay(long a, long b) {
@@ -188,12 +191,12 @@ public class StreakManager {
     }
 
     private PlayerStreakData getOrCreatePlayerData(String playerName) {
-        PlayerStreakData data = streakCache.get(playerName);
+        PlayerStreakData data = streakCache.get(playerName.toLowerCase());
         if (data == null) {
             // Load from config class
-            long lastLogin = config.getPlayerLastLogin(playerName);
-            int streak = config.getPlayerStreak(playerName);
-            int longestStreak = config.getPlayerLongestStreak(playerName);
+            long lastLogin = config.getPlayerLastLogin(playerName.toLowerCase());
+            int streak = config.getPlayerStreak(playerName.toLowerCase());
+            int longestStreak = config.getPlayerLongestStreak(playerName.toLowerCase());
             data = new PlayerStreakData(lastLogin, streak, longestStreak);
             streakCache.put(playerName, data);
         }
@@ -202,7 +205,7 @@ public class StreakManager {
 
     // Public API methods
     public int getPlayerStreak(Player player) {
-        String playerName = player.getName();
+        String playerName = player.getName().toLowerCase();
         PlayerStreakData data = getOrCreatePlayerData(playerName);
         return data.getStreak();
     }
@@ -213,24 +216,24 @@ public class StreakManager {
     }
 
     public int getPlayerLongestStreak(Player player) {
-        String playerName = player.getName();
+        String playerName = player.getName().toLowerCase();
         PlayerStreakData data = getOrCreatePlayerData(playerName);
         return data.getLongestStreak();
     }
 
     public int getPlayerLongestStreakByName(String playerName) {
-        PlayerStreakData data = getOrCreatePlayerData(playerName);
+        PlayerStreakData data = getOrCreatePlayerData(playerName.toLowerCase());
         return data.getLongestStreak();
     }
 
     public long getPlayerLastLogin(Player player) {
-        String playerName = player.getName();
+        String playerName = player.getName().toLowerCase();
         PlayerStreakData data = getOrCreatePlayerData(playerName);
         return data.getLastLogin();
     }
 
     public long getPlayerLastLoginByName(String playerName) {
-        PlayerStreakData data = getOrCreatePlayerData(playerName);
+        PlayerStreakData data = getOrCreatePlayerData(playerName.toLowerCase());
         return data.getLastLogin();
     }
 
@@ -267,14 +270,14 @@ public class StreakManager {
     }
 
     public void resetPlayerStreak(Player player) {
-        String playerName = player.getName();
+        String playerName = player.getName().toLowerCase();
         PlayerStreakData data = new PlayerStreakData();
         streakCache.put(playerName, data);
         config.savePlayerData(playerName, 0, 0);
     }
 
     public void setPlayerStreak(Player player, int streak) {
-        String playerName = player.getName();
+        String playerName = player.getName().toLowerCase();
         PlayerStreakData data = getOrCreatePlayerData(playerName);
         data.setStreak(streak);
         streakCache.put(playerName, data);
@@ -286,9 +289,9 @@ public class StreakManager {
      * Used after admin commands modify player data externally.
      */
     public void reloadPlayerData(String playerName) {
-        long lastLogin = config.getPlayerLastLogin(playerName);
-        int streak = config.getPlayerStreak(playerName);
-        int longestStreak = config.getPlayerLongestStreak(playerName);
+        long lastLogin = config.getPlayerLastLogin(playerName.toLowerCase());
+        int streak = config.getPlayerStreak(playerName.toLowerCase());
+        int longestStreak = config.getPlayerLongestStreak(playerName.toLowerCase());
         PlayerStreakData data = new PlayerStreakData(lastLogin, streak, longestStreak);
         streakCache.put(playerName, data);
     }
