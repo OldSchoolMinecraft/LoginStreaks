@@ -198,7 +198,7 @@ public class StreakManager {
             int streak = config.getPlayerStreak(playerName.toLowerCase());
             int longestStreak = config.getPlayerLongestStreak(playerName.toLowerCase());
             data = new PlayerStreakData(lastLogin, streak, longestStreak);
-            streakCache.put(playerName, data);
+            streakCache.put(playerName.toLowerCase(), data);
         }
         return data;
     }
